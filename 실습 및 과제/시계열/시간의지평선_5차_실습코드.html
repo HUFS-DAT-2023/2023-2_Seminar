@@ -1,0 +1,166 @@
+
+### DAT_Week7 ###
+### ets() 함수 등을 이용해 예측해보기 ###
+
+# 데이터: LakeHuron
+  # 1875년부터 1972년까지 매년 측정한 호수 수위 데이터
+LakeHuron
+
+# 시각화
+plot(LakeHuron, col='royalblue', lwd=1.5,
+     xlab='Year', ylab="Level(Feet)",
+     main="Annual Level of Lake Huron")
+  # plot으로만 봤을 때, 뚜렷한 추세는 관찰되지 않음.
+  # 연도별 자료이므로, 계절성은 존재하지 않음.
+  # 즉, 이 데이터는 '수준'과 '불규칙 요인'만이 반영된다고 볼 수 있음.
+  # 단순지수평활법을 활용한 예측을 고려해볼 수 있음.
+
+
+### 1. 단순지수평활법(SES)
+library(forecast)
+lake.ets <- ets(LakeHuron, model="ANN")
+  # model="ANN"의 의미
+  # A: 불규칙성분이 가법이다.
+  # N: 추세 성분은 존재하지 않는다.
+  # N: 계절 성분은 존재하지 않는다.
+  # 즉, ANN = "시계열데이터에 단순지수평활법에 의한 예측 모델을 적용한다"는 뜻이다.
+
+lake.ets
+  # alpha값이 0.9999 <- 예측 시 최근의 관측값을 우선적으로 고려한다는 의미.
+  # alpha값은 예측 모델의 성능이 최대화 되도록 자동으로 선택된다.
+
+# 예측모델에 forecast 함수를 적용하여 예측값을 추정할 수 있다.
+lake.ets.pred <- forecast(lake.ets, h=1)
+  # forecast() 함수의 첫 번째 인수에는, 예측을 할 모델을 지정한다.
+  # forecast() 함수의 두 번째 인수에는, h=(예측할 기간의 개수)를 지정한다.
+  # 예컨대 h=1이라면 1년 뒤의 값을 예측한다.
+
+lake.ets.pred
+  # 마지막 값이 1972년이므로 1973년의 값을 예측해준다.
+  # Point Forecast 열의 값은 579.96이며, 신뢰구간도 출력된다.
+
+# 예측결과를 그래프화 하기
+plot(lake.ets.pred, col='royalblue', lwd=1.5, 
+     xlab='Year', ylab="Level(Feet)", 
+     main="Forecast for Annual Level of Lake Huron")
+  # 예측값의 80%, 95% 신뢰구간도 표현된다.
+
+# 예측모델의 성능은 accuracy() 함수를 사용해 확인 가능
+accuracy(lake.ets)
+?accuracy
+  # 보통 RMSE 등이 자주 사용됨
+  # 예측정확도는 거의 대부분 관측값과 예측값의 차이인 예측오차를 바탕으로 계산된다.
+  # 예측오차(잔차)가 작을 수록 정확도가 높다.(=우수한 모델이다.)
+  # RMSE, MAE, MAPE 등의 기준을 활용하여 판단한다.
+  # ACF1: 잔차 사이의 자기상관을 의미함.
+    # 예측 모델이 적절하여 더 이상의 개선의 여지가 없다면, 잔차 간 상관계수는 0이 된다.
+    # 즉, ACF1은 0에 가까울수록 우수한 모델임을 의미한다.
+
+
+### 2.홀트지수평활법
+#install.packages('fpp')
+library(fpp)
+
+# 데이터: elecsales
+  # 1989년~2008년 사이의 남호주 지역 연도별 전력(Gwh) 판매량
+elecsales
+
+# plot으로 확인해보기
+plot(elecsales, col='royalblue', lwd=1.5, 
+     xlab='Year', ylab="Electricity Sales(Gwh)", 
+     main="Electricity Sales in South Australia")
+  # plot을 확인했을 때, 명확한 추세(Trend)가 존재함을 확인할 수 있다.
+  # 연도별 자료이므로, 계절적 요인은 존재하지 않는다.
+  # 이는, 홀트지수평활법 활용을 고려해볼 수 있음을 뜻한다.
+
+# 모델 생성
+elecsales.ets <- ets(elecsales, model='AAN')
+  #'AAN' -> 불규칙 요인과 추세 요인이 가법적임을 의미.
+  # 홀트지수평활법을 적용함을 의미한다.
+
+elecsales.ets
+  # alpha, beta 모두 1e-04로 매우 작다.
+  # 예측 시 과거의 관측값을 우선한다는 의미이다.
+
+# 예측
+elecsales.ets.pred <- forecast(elecsales.ets, h=5)
+elecsales.ets.pred
+  # h=5, 마지막 값이 2008년이므로, 2009~2013년의 값을 예측한다.
+  # alpha, beta 값이 각각 0에 수렴 = 과거 값의 비중을 높게 친다.
+  
+plot(elecsales.ets.pred, col='royalblue', lwd=1.5,
+     flty =3, flwd=2.5, shadecols=c("pink", "green"),
+     xlab='Year', ylab="Electricity Sales(Gwh)", 
+     main="Forecast for Electricity Sales in South Australia")
+  # 예측 결과의 시계열 그래프 부분을 별도 인수로 따로 조절 가능함.
+  # flty = 선의 유형, flwd = 선의 두께
+  # shadecols = 신뢰구간의 색상
+
+
+## 3.홀트-윈터스지수평활
+
+# 데이터: AirPassengers
+  # 1949년 1월부터 1960년 12월까지 월별 국제선 항공기 승객 수
+AirPassengers
+
+# 시각화 
+plot(AirPassengers, col='royalblue', lwd=1.5,
+     xlab='Year', ylab=" Air Passengers(1k)",
+     main="Air Passengers")
+  # 그래프의 형태로 봤을 때 승법모형으로 설명 가능함을 의미.
+  # 그러나 홀트-윈터스지수평활법은 시계열 데이터의 구성성분이 가법적으로 결합되는 것을 가정함.
+  # 승법모델로 설명될 수 있는 시계열 데이터는, 각 관측값에 로그를 취하여 쉽게 가법모형으로 변환할 수 있다.
+
+lair <- log(AirPassengers)
+
+# 시각화
+plot(lair, col='royalblue', lwd=1.5, 
+     xlab='Year', ylab=" Air Passengers(1k, log)",
+     main="Air Passengers(log Transformed)")
+  # 로그로 변환된 그래프는 변동성이 조금이나마 안정됨.
+  # 가법으로 성분 분해가 가능해졌다.
+
+lair.ets <- ets(lair, model='AAA')   
+  # AAA: 불규칙성분, 추세성분, 계절성분이 모두 가법적임을 의미.
+
+lair.ets
+
+# 향후 1년 간의 승객 수 예측 <- 월별 자료이므로 h=12 설정
+lair.ets.pred <- forecast(lair.ets, h=12)
+lair.ets.pred
+
+# 예측 결과 시각화
+plot(lair.ets.pred, col='royalblue', lwd=1.5,
+      fcol = 'indianred1', flwd=3,
+     xlab='Year', ylab=" Air Passengers(1k,log)", 
+     main="Forecast for Air Passengers(log Transformed)")
+  # fcol 사용 시 예측선 색상 지정 가능.
+  # 여기에서의 예측 결과는 로그 척도이기 때문에, 예측된 승객 수를 알기 위해서는 지수 함수를 써서 반환할 필요가 있다.
+
+lair.ets.pred$mean
+lair.ets.pred$lower
+lair.ets.pred$upper
+
+# 로그화 되어 있으므로, 다시 지수화를 거쳐 숫자를 추출.
+air.mean <- exp(lair.ets.pred$mean)
+air.lower <- exp(lair.ets.pred$lower)
+air.upper <- exp(lair.ets.pred$upper)
+air.pred <- cbind(air.mean, air.lower, air.upper)
+air.pred
+
+# ets()에 인수를 조정하지 않으면, 최선의 모델을 출력한다.
+library(fpp)
+austourists
+
+austourists.ets <- ets(austourists)
+austourists.ets
+  #ETS(M,A,M)이 최선임을 보여준다.
+
+# 시각화
+plot(forecast(austourists.ets,h=12), 
+     col='royalblue', lwd=1.5,
+     fcol = 'black', flty=1, flwd=3,
+     shadecols=c('mistyrose', 'salmon'),
+     xlab='Year', ylab="Total Visitor Nights", 
+     main="Forecast for International Tourists to Australia")
+  # fcol 사용 시, 예측선의 색상을 지정할 수 있다.
