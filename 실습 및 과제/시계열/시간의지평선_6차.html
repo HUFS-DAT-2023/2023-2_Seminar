@@ -1,0 +1,106 @@
+# ARIMA
+## AR모델과 MA모델을 바탕으로 함
+## AR : 시계열 상의 과거 관측값을 이용해 예측모델 생성
+## MA : 과거 예측오차를 기간으로 예측 모델 구축
+
+## AR : 예측하고자하는 특정 변수의 과거 관측값의 선형결합으로 해당 변수의 미래값 예측
+## -> 과거 p개 관측값의 선형결합으로 예측 : AR(p)
+
+## MA : 예측오차를 이용하여 미래의 값 예측
+## -> 과거 q개 예측오차의 선형결합으로 예측 : MA(q)
+
+## ARIMA(p,q) : AR(p)+MA(q)
+## ARIMA(p,d,q) : ARMA모델에 차분 과정 추가
+## -> 시계열 데이터를 d회 차분하고 결과값은 과거 p개 관측값 q개 오차에 의해 예측
+## -> 결과값은 비차분화 과정을 거쳐 최종 예측값으로 변환
+
+## ARIMA 모델링 : 시계열 데이터의 정상성 평가, 예측모델 생성 및 평가와 예측
+
+
+# 시계열 데이터의 정상성 평가
+```{r}
+Nile
+plot(Nile)
+```
+## 분산의 폭이 크지 않아 로그 변환 불필요, 감소 추세보임
+
+
+## 정상성 검정 : p-value=0.0642 -> 비정상성
+```{r}
+library(tseries)
+adf.test(Nile)
+```
+
+
+## 필요한 차분수
+```{r}
+library(forecast)
+ndiffs(Nile)
+```
+
+
+## 차분
+```{r}
+## 차분
+dNile <- diff(Nile)
+plot(dNile)
+adf.test(dNile)
+```
+## 정상성 검정 : p-value=0.01 -> 정상성
+
+
+## 예측모델 생성
+```{r}
+Acf(dNile)
+Pacf(dNile)
+Acf(Nile)
+Pacf(Nile)
+```
+
+
+## ARIMA 모델 선택
+## 1. AR(p) : ACF 감소하며 0으로 접근, PACF p 이후 0
+## 2. MA(q)) : ACF q 이후 0, PACF 감소하며 0으로 접근
+## 3. ARMA(p,q) : ACF q 이후 0, PACF p 이후 0
+
+
+```{r}
+Nile.arima <- arima(Nile, order=c(0,1,1))
+Nile.arima
+accuracy(Nile.arima)
+```
+
+
+## 예측모델 평가와 예측
+# 1. 평가
+```{r}
+qqnorm(Nile.arima$residuals)
+qqline(Nile.arima$residuals)
+```
+## 잔차들이 직선상에 존재 -> 정규분포 따름
+
+## 잔차들의 상관관계 검정
+```{r}
+Box.test(Nile.arima$residuals)
+```
+## p-value=0.2487->잔차들의 상관관계 0이라는 귀무가설 기각 못 함
+
+
+# 2. 예측
+```{r}
+Nile.arima.pred <- forecast(Nile.arima)
+Nile.arima.pred
+plot(Nile.arima.pred)
+```
+
+
+# 계절요인을 고려한 ARIMA 모형
+```{r}
+gas
+gas.arima <- auto.arima(gas)
+gas.arima
+arima(gas, order=c(2,1,1), seasonal=list(order=c(0,1,1),period=12))
+forecast(gas.arima)
+plot(forecast(gas.arima))
+```
+
