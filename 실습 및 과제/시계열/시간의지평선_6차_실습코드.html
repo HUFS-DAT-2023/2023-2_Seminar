@@ -17,6 +17,8 @@
 ## ARIMA 모델링 : 시계열 데이터의 정상성 평가, 예측모델 생성 및 평가와 예측
 
 
+
+
 # 시계열 데이터의 정상성 평가
 ```{r}
 Nile
@@ -71,6 +73,8 @@ accuracy(Nile.arima)
 ```
 
 
+
+  
 ## 예측모델 평가와 예측
 # 1. 평가
 ```{r}
@@ -85,7 +89,7 @@ Box.test(Nile.arima$residuals)
 ```
 ## p-value=0.2487->잔차들의 상관관계 0이라는 귀무가설 기각 못 함
 
-
+  
 # 2. 예측
 ```{r}
 Nile.arima.pred <- forecast(Nile.arima)
@@ -94,13 +98,37 @@ plot(Nile.arima.pred)
 ```
 
 
+
+  
 # 계절요인을 고려한 ARIMA 모형
 ```{r}
 gas
 gas.arima <- auto.arima(gas)
 gas.arima
+
 arima(gas, order=c(2,1,1), seasonal=list(order=c(0,1,1),period=12))
 forecast(gas.arima)
 plot(forecast(gas.arima))
 ```
 
+
+
+
+
+
+
+# 논문 요약
+## 주제 : 온라인 쇼핑 산업의 예측과 소매 유통채널 간의 인과관계 분석
+## ARIMA 모형을 활용한 일반 소매업(P), 인터넷쇼핑(IS), 홈쇼핑(HS)을 변수로 하는 시계열 분석
+
+### 1. Preliminary Analysis : *ADF 단위근 검정 -> 불안정한 시계열로 판단 => 1차 차분 필요
+#### 1-1. 적용용 : P, IS, HS 모두 1차 차분 후 P-value가 0.05 이하이므로 차분 후 정상성을 만족함
+
+### 2. Arima Model Diagnostic Checking : t-통계량 절댓값, R^2, Ljung_Box Q 유의확률 확인
+#### 2-1. 적용 : P, IS, HS 모두 t-통계량 절댓값이 2 이상 / R^2의 값이 0.75 이상이므로 설명력이 우수함 & Ljung_Box Q의 유의확률도 0.05를 초과하여 백색잡음항의 독립성 만족족
+
+### 3. ARIMA Model Checking : auto.arima함수 사용
+#### 3-1. 적용 : P => ARIMA(0,1,1)(1,1,0)12 / IS => ARIMA(2,1,0)(1,1,2)12 / HS => ARIMA(2,1,0)(1,1,0)12
+
+### 4. Forecasting And Result : 예측값과 실제값 비교
+#### 4-1. 적용 : 예측값과 실제값의 큰 차이가 없어 예측력이 우수하다고 할 수 있음
