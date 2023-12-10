@@ -1,0 +1,9 @@
+## 팀 별 프로젝트 코드 업로드
+
+### 양식
+팀명_프로젝트_주제
+
+### 확장자
+<img src="https://img.shields.io/badge/Python-3776AB?style=flat&logo=Python&logoColor=yellow" /> .ipynb 
+
+<img src="https://img.shields.io/badge/R-276DC3?style=flat&logo=R&logoColor=white" /> .Rmd or .html
