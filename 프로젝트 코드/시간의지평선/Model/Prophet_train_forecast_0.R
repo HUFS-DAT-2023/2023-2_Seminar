@@ -1,0 +1,72 @@
+library(ggplot2)
+library(tidyr)
+library(forecast)
+library(lubridate)
+library(dplyr)
+library(zoo)
+library(utils)
+library(reshape2)
+library(parallel)
+library(prophet)
+
+
+train <- read.csv('train_Prophet.csv')
+train
+
+# 데이터프레임의 첫 번째 열(ID)을 제외하고 나머지 열에 대해 음수 값을 0으로 변환
+train[-1] <- lapply(train[-1], function(x) ifelse(x < 0, 0, x))
+train
+
+head(train)
+
+# 데이터 전처리
+date_columns <- names(train)[grep("2022|2023", names(train))]
+long_train <- train %>%
+  select(ID, all_of(date_columns)) %>%
+  pivot_longer(cols = all_of(date_columns), names_to = "date", values_to = "y")
+long_train$date <- as.Date(gsub("X", "", long_train$date), format = "%Y.%m.%d")
+long_train <- long_train %>% rename(ds = date)
+head(long_train)
+
+# 공휴일 설정
+korean_holidays <- data.frame(
+  holiday = c('1', '2', '3', '4', '31', '55', '99', '999', '33', '333', 'Hangul Nal', 'Hangul Nal2', 'Christmas', 'New Year\'s Day', 'Seollal1', 'Seollal2', 'Seollal3', 'Seollal4', '3'),
+  ds = as.Date(c('2022-01-01', '2022-01-31', '2022-02-01','2022-02-02','2022-03-01', '2022-05-05','2022-09-09','2022-09-10','2022-09-11','2022-09-12','2022-10-09', '2022-10-10', '2022-12-25', '2023-01-01', '2023-01-21', '2023-01-22', '2023-01-23', '2023-01-24', '2023-03-01')),
+  lower_window = c(-1, -1, -2, -2, -1, -1,  -1, -2, -2, -1, -1, -1, -3, -3, -2, -2, -2, -2, -1),
+  upper_window = c(0, 1, 2, 1, 0, 0, 1, 2, 1, 0, 1, 0, 3, 3, 2, 2, 2, 2, 0)
+)
+
+
+# 병렬 처리 설정
+numCores <- detectCores() - 1
+cl <- makeCluster(numCores)
+clusterExport(cl, varlist = c("long_train", "korean_holidays"))
+clusterEvalQ(cl, {
+  library(prophet)
+  library(dplyr)
+  library(tidyr)
+})
+
+
+# 병렬 처리를 사용한 예측
+result_df <- parLapply(cl, 0:15889, function(id) {
+  selected_id_data <- long_train %>% filter(ID == as.character(id))
+  m <- prophet(selected_id_data)
+  future <- make_future_dataframe(m, periods = 1)
+  forecast <- predict(m, future)
+  return(data.frame(ID = id, t(forecast$yhat)))
+})
+
+result_df
+# 클러스터 종료
+stopCluster(cl)
+
+# 결과 데이터 프레임 변환
+result_df <- do.call(rbind, result_df)
+
+head(result_df)
+
+
+install.packages('utils')
+library(utils)
+write.csv(result_df, file = "C:/Users/eun01/OneDrive - 한국외국어대학교/ftest.csv", row.names = TRUE)
